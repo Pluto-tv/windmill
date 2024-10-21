@@ -17,9 +17,11 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_ECR }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ECR }}
           aws-region: us-east-1
+
       - name: Login to ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+
       - name: Create ECR repo
         run: |
           createEcr() {
@@ -36,16 +38,19 @@ jobs:
           }
           createEcr "service-pro-workflow"
 
-      # - name: Set up Docker Buildx
-      - uses: depot/setup-action@v1
+      - name: Build, tag, and push image
+        env:
+          ECR_REPOSITORY: service-pro-workflow
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          COMMIT_SHA: ${{ github.sha }}
+          GITHUB_REGISTRY_TOKEN: ${{ secrets.GH_PKG_REPO_TOKEN}}
+        run: |
+          env
+          IMAGE_TAG=$(echo $GITHUB_REF | sed -e 's/refs\/heads\///g' | sed -e 's/refs\/tags\///g' | sed -e 's/\@pluto-tv\/windmill\@//g' | sed -e 's/\//-/g')-${COMMIT_SHA}
+          DOCKER_BUILDKIT=1 docker build -f ./Dockerfile -t $ECR_REPOSITORY --progress=plain --build-arg GITHUB_REGISTRY_TOKEN=${GITHUB_REGISTRY_TOKEN} .
+          docker tag $ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Build
-        uses: depot/build-push-action@v1
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          build-args: |
-            features=enterprise,enterprise_saml,stripe,embedding,parquet,prometheus,openidconnect,cloud,jemalloc,deno_core
-          tags: latest
-          labels: latest
+      - name: Logout of Amazon ECR
+        if: always()
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
