@@ -1,0 +1,23 @@
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "AllEnvironmentAccess",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::479133078108:root",
+          "arn:aws:iam::474014820769:root",
+          "arn:aws:iam::322304022098:root",
+          "arn:aws:iam::648936339582:root"
+        ]
+      },
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:DescribeImages",
+        "ecr:GetDownloadUrlForLayer"
+      ]
+    }
+  ]
+}
